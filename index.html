@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ELDIYAR // Node.js Engineer — Terminal v6.0</title>
+  <meta name="description" content="Eldiyar — Fullstack JavaScript Engineer, Backend-Focused, 6+ years of commercial experience in Crypto/Fintech, Real-Time Streaming, Web3.">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0b0c10;
+      --green: #39ff14;
+      --green-dim: #1a8a0e;
+      --green-glow: rgba(57, 255, 20, 0.15);
+      --cyan: #0abdc6;
+      --red: #ff003c;
+      --amber: #ffb700;
+      --grey: #4a4a4a;
+      --font: 'Consolas', 'Courier New', 'Liberation Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--green);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    ::selection {
+      background: var(--green);
+      color: var(--bg);
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 3px; }
+
+    .scanline {
+      pointer-events: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(57, 255, 20, 0.02) 2px,
+        rgba(57, 255, 20, 0.02) 4px
+      );
+      z-index: 9999;
+    }
+
+    #matrix-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      opacity: 0.12;
+    }
+
+    .wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px 24px 80px;
+    }
+
+    .terminal-block {
+      border: 1px solid var(--green-dim);
+      padding: 24px;
+      margin-bottom: 28px;
+      position: relative;
+      background: rgba(57, 255, 20, 0.02);
+    }
+
+    .terminal-block::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: 16px;
+      width: 120px; height: 1px;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    .section-label {
+      position: absolute;
+      top: -10px; left: 28px;
+      background: var(--bg);
+      padding: 0 8px;
+      font-size: 11px;
+      color: var(--cyan);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .cmd-line {
+      color: var(--cyan);
+      margin-bottom: 16px;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .cmd-line .path { color: var(--amber); }
+    .cmd-line .prompt { color: var(--green); }
+
+    .blink-cursor::after {
+      content: '█';
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ── HEADER ── */
+    .header-ascii {
+      color: var(--green);
+      font-size: 10px;
+      line-height: 1.2;
+      white-space: pre;
+      overflow-x: auto;
+      margin-bottom: 12px;
+      text-shadow: 0 0 10px var(--green-glow);
+    }
+
+    .boot-log {
+      font-size: 12px;
+      color: var(--green-dim);
+      margin-bottom: 6px;
+    }
+
+    .boot-log.ok { color: var(--green); }
+    .boot-log .status { color: var(--green); }
+    .boot-log .fail { color: var(--red); }
+
+    .system-info {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 4px 0;
+      font-size: 14px;
+      margin-top: 16px;
+    }
+
+    .system-info .key {
+      color: var(--cyan);
+      opacity: 0.85;
+    }
+
+    .system-info .val {
+      color: var(--green);
+    }
+
+    .system-info .val a {
+      color: var(--amber);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--amber);
+      transition: opacity 0.2s;
+    }
+
+    .system-info .val a:hover { opacity: 0.7; }
+
+    /* ── NAV ── */
+    .nav-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      padding: 10px 0;
+      margin-bottom: 20px;
+      border-bottom: 1px dashed var(--green-dim);
+      font-size: 13px;
+    }
+
+    .nav-bar a {
+      color: var(--green);
+      text-decoration: none;
+      transition: color 0.2s, text-shadow 0.2s;
+    }
+
+    .nav-bar a:hover {
+      color: var(--cyan);
+      text-shadow: 0 0 8px var(--cyan);
+    }
+
+    .nav-bar a::before { content: '['; color: var(--green-dim); }
+    .nav-bar a::after { content: ']'; color: var(--green-dim); }
+
+    /* ── ABOUT ── */
+    #about p {
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .highlight { color: var(--cyan); }
+    .accent { color: var(--amber); }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border: 1px solid var(--green-dim);
+      color: var(--green);
+      opacity: 0.8;
+    }
+
+    /* ── SKILLS ── */
+    .skills-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .skill-category h3 {
+      color: var(--cyan);
+      font-size: 13px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .skill-list { list-style: none; }
+
+    .skill-list li {
+      font-size: 13px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bar {
+      letter-spacing: -1px;
+      font-size: 12px;
+      flex-shrink: 0;
+      min-width: 100px;
+    }
+
+    .bar .filled { color: var(--green); }
+    .bar .empty { color: var(--grey); }
+
+    .skill-name {
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    /* ── EXPERIENCE ── */
+    .timeline { list-style: none; }
+
+    .timeline-item {
+      position: relative;
+      padding-left: 24px;
+      padding-bottom: 28px;
+      border-left: 1px solid var(--green-dim);
+    }
+
+    .timeline-item:last-child { border-left-color: transparent; padding-bottom: 0; }
+
+    .timeline-item::before {
+      content: '>';
+      position: absolute;
+      left: -6px; top: 0;
+      color: var(--green);
+      font-weight: bold;
+      background: var(--bg);
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .timeline-date {
+      font-size: 11px;
+      color: var(--amber);
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    .timeline-title {
+      font-size: 15px;
+      color: var(--green);
+      margin-bottom: 2px;
+    }
+
+    .timeline-company {
+      font-size: 13px;
+      color: var(--cyan);
+      margin-bottom: 8px;
+    }
+
+    .timeline-desc {
+      font-size: 13px;
+      color: var(--green-dim);
+      line-height: 1.6;
+    }
+
+    .timeline-desc li {
+      margin-bottom: 4px;
+      list-style: none;
+    }
+
+    .timeline-desc li::before {
+      content: '$ ';
+      color: var(--green);
+    }
+
+    .timeline-tech {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--grey);
+    }
+
+    .timeline-tech span { color: var(--amber); }
+
+    .timeline-link {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--cyan);
+      text-decoration: none;
+      opacity: 0.8;
+    }
+
+    .timeline-link:hover { opacity: 1; text-decoration: underline; }
+
+    /* ── PROJECTS ── */
+    .project-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .project-card {
+      border: 1px solid var(--green-dim);
+      padding: 16px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .project-card:hover {
+      border-color: var(--green);
+      box-shadow: 0 0 16px var(--green-glow);
+    }
+
+    .project-card h3 {
+      font-size: 14px;
+      color: var(--cyan);
+      margin-bottom: 8px;
+    }
+
+    .project-card p {
+      font-size: 12px;
+      color: var(--green-dim);
+      line-height: 1.6;
+    }
+
+    .project-card .project-stack {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--amber);
+    }
+
+    /* ── CONTACT ── */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      padding: 10px 14px;
+      border: 1px solid var(--green-dim);
+      transition: border-color 0.3s;
+    }
+
+    .contact-item:hover { border-color: var(--cyan); }
+
+    .contact-item .label {
+      color: var(--cyan);
+      min-width: 70px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .contact-item a {
+      color: var(--green);
+      text-decoration: none;
+    }
+
+    .contact-item a:hover { color: var(--amber); }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      padding: 28px 0 0;
+      font-size: 11px;
+      color: var(--green-dim);
+      border-top: 1px dashed var(--green-dim);
+    }
+
+    /* ── TYPEWRITER ── */
+    .typewriter { overflow: hidden; white-space: nowrap; }
+
+    /* ── FADE IN ── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 700px) {
+      .wrapper { padding: 12px 14px 60px; }
+      .terminal-block { padding: 16px 14px; }
+      .skills-grid { grid-template-columns: 1fr; }
+      .project-grid { grid-template-columns: 1fr; }
+      .system-info { grid-template-columns: 130px 1fr; font-size: 13px; }
+      .header-ascii { font-size: 7px; }
+      .bar { min-width: 80px; font-size: 11px; }
+    }
+
+    @media (max-width: 480px) {
+      body { font-size: 13px; }
+      .header-ascii { font-size: 5.5px; }
+      .system-info { grid-template-columns: 1fr; }
+      .system-info .key { margin-top: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix-canvas"></canvas>
+  <div class="scanline"></div>
+
+  <div class="wrapper">
+
+    <!-- ════════════ HEADER ════════════ -->
+    <header class="terminal-block fade-in" id="top">
+      <div class="header-ascii" aria-hidden="true">
+ ███████╗██╗     ██████╗ ██╗██╗   ██╗ █████╗ ██████╗
+ ██╔════╝██║     ██╔══██╗██║╚██╗ ██╔╝██╔══██╗██╔══██╗
+ █████╗  ██║     ██║  ██║██║ ╚████╔╝ ███████║██████╔╝
+ ██╔══╝  ██║     ██║  ██║██║  ╚██╔╝  ██╔══██║██╔══██╗
+ ███████╗███████╗██████╔╝██║   ██║   ██║  ██║██║  ██║
+ ╚══════╝╚══════╝╚═════╝ ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝</div>
+
+      <div class="boot-log">[<span class="status">BOOT</span>] Initializing system kernel...</div>
+      <div class="boot-log">[<span class="status">OK</span>] Loading modules: node.js, typescript, react, docker</div>
+      <div class="boot-log">[<span class="status">OK</span>] Mounting /dev/blockchain /dev/streaming /dev/fintech</div>
+      <div class="boot-log">[<span class="status">OK</span>] Network interfaces configured</div>
+      <div class="boot-log ok">───────────────────────────────────────────────</div>
+      <div class="boot-log ok" id="typed-greeting" style="min-height:1.5em;"></div>
+
+      <div class="system-info">
+        <span class="key">OPERATOR</span>     <span class="val">Eldiyar</span>
+        <span class="key">ROLE</span>         <span class="val">JavaScript / Node.js Engineer</span>
+        <span class="key">CLEARANCE</span>    <span class="val">Senior — 6+ yrs commercial</span>
+        <span class="key">LOCATION</span>     <span class="val">Antalya, Türkiye</span>
+        <span class="key">STATUS</span>       <span class="val">Remote / On-site — Full or Part-time</span>
+        <span class="key">LANGUAGES</span>    <span class="val">RU (native) · KG (native) · KZ · TR · EN</span>
+      </div>
+    </header>
+
+    <!-- ════════════ NAV ════════════ -->
+    <nav class="nav-bar">
+      <a href="#about">ABOUT</a>
+      <a href="#skills">SKILLS</a>
+      <a href="#experience">EXPERIENCE</a>
+      <a href="#projects">PROJECTS</a>
+      <a href="#contact">CONTACT</a>
+    </nav>
+
+    <!-- ════════════ ABOUT ════════════ -->
+    <section id="about" class="terminal-block fade-in">
+      <span class="section-label">// PROFILE</span>
+      <div class="cmd-line"><span class="prompt">root</span>@eldiyar:<span class="path">~</span># cat /etc/profile.d/about.sh</div>
+      <p>
+        <span class="highlight">Fullstack JavaScript Engineer</span> | Backend-Focused | Self-Taught Developer.
+      </p>
+      <p>
+        Turned a passion for technology into a profession. Started by exploring hacking techniques, then pivoted to building
+        <span class="accent">high-load backend systems</span>, real-time streaming solutions, fintech platforms, and scalable architectures.
+      </p>
+      <p>
+        Specializing in <span class="highlight">Node.js / TypeScript</span> backend with a T-shaped fullstack profile.
+        Core domains: <span class="accent">Crypto/Fintech</span>, <span class="accent">Real-Time Streaming</span>, <span class="accent">Web3</span>.
+        Deep understanding of architecture, DevOps, microservices, fault tolerance, and security.
+      </p>
+      <p>
+        Clean code. Robust architectures. Maintainable solutions.
+      </p>
+      <div class="tags">
+        <span class="tag">#backend</span>
+        <span class="tag">#nodejs</span>
+        <span class="tag">#typescript</span>
+        <span class="tag">#crypto</span>
+        <span class="tag">#fintech</span>
+        <span class="tag">#web3</span>
+        <span class="tag">#streaming</span>
+        <span class="tag">#fullstack</span>
+        <span class="tag">#self-taught</span>
+      </div>
+    </section>
+
+    <!-- ════════════ SKILLS ════════════ -->
+    <section id="skills" class="terminal-block fade-in">
+      <span class="section-label">// ARSENAL</span>
+      <div class="cmd-line"><span class="prompt">root</span>@eldiyar:<span class="path">~</span># ./execute_skills.sh --verbose</div>
+
+      <div class="skills-grid">
+
+        <!-- Backend -->
+        <div class="skill-category">
+          <h3>/* Backend */</h3>
+          <ul class="skill-list">
+            <li><span class="bar"><span class="filled">██████████</span></span> <span class="skill-name">Node.js / TS</span></li>
+            <li><span class="bar"><span class="filled">█████████</span><span class="empty">░</span></span> <span class="skill-name">NestJS</span></li>
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">Encore.ts</span></li>
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">Express</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">Fastify</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">Adonis.js</span></li>
+            <li><span class="bar"><span class="filled">██████</span><span class="empty">░░░░</span></span> <span class="skill-name">Moleculer</span></li>
+          </ul>
+        </div>
+
+        <!-- Databases -->
+        <div class="skill-category">
+          <h3>/* Databases & ORM */</h3>
+          <ul class="skill-list">
+            <li><span class="bar"><span class="filled">█████████</span><span class="empty">░</span></span> <span class="skill-name">PostgreSQL</span></li>
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">Redis</span></li>
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">MongoDB</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">MySQL</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">ClickHouse</span></li>
+            <li><span class="bar"><span class="filled">█████████</span><span class="empty">░</span></span> <span class="skill-name">Prisma</span></li>
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">TypeORM</span></li>
+          </ul>
+        </div>
+
+        <!-- Frontend -->
+        <div class="skill-category">
+          <h3>/* Frontend & Mobile */</h3>
+          <ul class="skill-list">
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">React / Next.js</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">React Native</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">Redux / TanStack</span></li>
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">Tailwind / MUI</span></li>
+            <li><span class="bar"><span class="filled">██████</span><span class="empty">░░░░</span></span> <span class="skill-name">Expo / Ionic</span></li>
+          </ul>
+        </div>
+
+        <!-- DevOps -->
+        <div class="skill-category">
+          <h3>/* DevOps & Infra */</h3>
+          <ul class="skill-list">
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">Docker / PM2</span></li>
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">Nginx / OpenResty</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">CI/CD (GitLab)</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">Linux (Deb/Ubu)</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">Kibana / Sentry</span></li>
+          </ul>
+        </div>
+
+        <!-- Brokers & Streaming -->
+        <div class="skill-category">
+          <h3>/* Message Brokers */</h3>
+          <ul class="skill-list">
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">Apache Kafka</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">NATS</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">RabbitMQ</span></li>
+          </ul>
+        </div>
+
+        <!-- Crypto / Streaming / Other -->
+        <div class="skill-category">
+          <h3>/* Crypto & Streaming */</h3>
+          <ul class="skill-list">
+            <li><span class="bar"><span class="filled">█████████</span><span class="empty">░</span></span> <span class="skill-name">Blockchain APIs</span></li>
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">WebRTC / WSS</span></li>
+            <li><span class="bar"><span class="filled">████████</span><span class="empty">░░</span></span> <span class="skill-name">FFmpeg / HLS</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">N8N / AI / OpenAI</span></li>
+            <li><span class="bar"><span class="filled">███████</span><span class="empty">░░░</span></span> <span class="skill-name">AML/KYC Compliance</span></li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ════════════ EXPERIENCE ════════════ -->
+    <section id="experience" class="terminal-block fade-in">
+      <span class="section-label">// MISSION LOG</span>
+      <div class="cmd-line"><span class="prompt">root</span>@eldiyar:<span class="path">~</span># git log --oneline --all --graph career.log</div>
+
+      <ul class="timeline">
+
+        <!-- 1 -->
+        <li class="timeline-item">
+          <div class="timeline-date">FEB 2025 — PRESENT</div>
+          <div class="timeline-title">Senior Node.js Blockchain Engineer</div>
+          <div class="timeline-company">SkillBranch · Moscow, RU (remote)</div>
+          <ul class="timeline-desc">
+            <li>Multi-blockchain service for BTC/ETH/USDT/TRX — deposit monitoring, auto-split distribution, 3M wallets in real-time</li>
+            <li>Event-driven TRON monitoring of 10K+ addresses: worker pools, batch processing, caching, parallelism, retry logic</li>
+            <li>Integrated Tronsave, Ankr, ethers, TronWeb for resource rental, fee calc, UTXO & smart contract ops</li>
+            <li>Auto gas management: ETH/TRX fee calculation, fund replenishment & withdrawal automation</li>
+            <li>Scalable modular architecture with DTOs, services, repositories, async fault tolerance</li>
+          </ul>
+          <div class="timeline-tech">stack: <span>Node.js · TypeScript · NestJS · PostgreSQL · Redis · Docker · SOLID</span></div>
+        </li>
+
+        <!-- 2 -->
+        <li class="timeline-item">
+          <div class="timeline-date">JUL 2024 — FEB 2025 · 8 MO</div>
+          <div class="timeline-title">Senior JS Backend Engineer | AI & Streaming</div>
+          <div class="timeline-company">SkillBranch · Moscow, RU (remote)</div>
+          <ul class="timeline-desc">
+            <li>Supported 1K–10K concurrent users with stable real-time connections in production</li>
+            <li>Implemented auto transcription, translation & TTS in real-time</li>
+            <li>Built independent room system with load balancing & dynamic routing (Nginx/OpenResty/Lua)</li>
+            <li>Optimized audio streaming — reduced latency, improved quality</li>
+            <li>Rewrote & simplified codebase, removed legacy dependencies</li>
+            <li>Received company equity for product contribution</li>
+          </ul>
+          <div class="timeline-tech">stack: <span>TypeScript · Node.js · FFmpeg · React · Nginx · Lua · Redis</span></div>
+          <a class="timeline-link" href="https://skill-branch.com/translation" target="_blank" rel="noopener">→ skill-branch.com/translation</a>
+        </li>
+
+        <!-- 3 -->
+        <li class="timeline-item">
+          <div class="timeline-date">NOV 2023 — OCT 2024 · 1 YR</div>
+          <div class="timeline-title">Senior Full Stack Engineer & Co-Founder</div>
+          <div class="timeline-company">SkillBranch · Bishkek, KG</div>
+          <ul class="timeline-desc">
+            <li>Built & launched full crypto exchange platform (backend + frontend) on monorepo architecture</li>
+            <li>Integrated Sumsub & AMLBot for automated KYC/AML identity verification</li>
+            <li>Personally obtained KYC/AML Compliance Officer certification</li>
+            <li>Exchange integrations: Binance, Kraken, Bybit — market data collection, Klines, ClickHouse storage</li>
+            <li>Admin panel: financial docs, account management, transaction controls, role-based access</li>
+            <li>Received company equity as technical strategist & co-founder</li>
+          </ul>
+          <div class="timeline-tech">stack: <span>NestJS · Next.js · PostgreSQL · ClickHouse · QuestDB · Redis · Nginx</span></div>
+          <a class="timeline-link" href="https://elcrypto.pro" target="_blank" rel="noopener">→ elcrypto.pro</a>
+        </li>
+
+        <!-- 4 -->
+        <li class="timeline-item">
+          <div class="timeline-date">FEB 2023 — NOV 2023 · 10 MO</div>
+          <div class="timeline-title">Senior CKEditor JavaScript Engineer</div>
+          <div class="timeline-company">Devprom LLC · Moscow, RU</div>
+          <ul class="timeline-desc">
+            <li>Developed & optimized plugins/widgets for CKEditor v4 & v5</li>
+            <li>Led migration CKEditor v4 → v5 with full TypeScript refactoring</li>
+            <li>Re-architected editor core — rewritten key functionality, plugins, widgets</li>
+            <li>DOM manipulation, layout & styling for improved UX</li>
+          </ul>
+          <div class="timeline-tech">stack: <span>JavaScript · TypeScript · CKEditor · HTML · CSS · jQuery</span></div>
+        </li>
+
+        <!-- 5 -->
+        <li class="timeline-item">
+          <div class="timeline-date">AUG 2021 — FEB 2023 · 1 YR 7 MO</div>
+          <div class="timeline-title">Senior Full Stack JS & Golang Mentor</div>
+          <div class="timeline-company">SkillFactory · Moscow, RU</div>
+          <ul class="timeline-desc">
+            <li>Technology consultations & homework reviews for Full Stack JS, Golang, Linux, Git courses</li>
+            <li>Conducted webinars with Q&A sessions, in-depth lectures on development topics</li>
+            <li>Student support — helping solve real-world problems and build projects</li>
+          </ul>
+          <div class="timeline-tech">stack: <span>JavaScript · React · Golang · Node.js · NestJS · Linux · Git</span></div>
+        </li>
+
+        <!-- 6 -->
+        <li class="timeline-item">
+          <div class="timeline-date">AUG 2021 — DEC 2022 · 1 YR 5 MO</div>
+          <div class="timeline-title">Node.js Developer (IoT)</div>
+          <div class="timeline-company">aQsi · Moscow, RU</div>
+          <ul class="timeline-desc">
+            <li>System for IoT devices (vending machines, cash registers) — telemetry, sales monitoring, fiscalization</li>
+            <li>Rewrote legacy project from scratch with optimized architecture & new business logic</li>
+            <li>API optimization: protocols for receipt fiscalization & acquiring integration</li>
+            <li>Microservices: Kafka.js, NATS, RabbitMQ — high availability, minimal latency</li>
+          </ul>
+          <div class="timeline-tech">stack: <span>Adonis.js · TypeScript · Kafka · Redis · PostgreSQL · Docker</span></div>
+          <a class="timeline-link" href="https://cube-develop.aqsi.ru" target="_blank" rel="noopener">→ cube-develop.aqsi.ru</a>
+        </li>
+
+        <!-- 7 -->
+        <li class="timeline-item">
+          <div class="timeline-date">APR 2020 — AUG 2021 · 1 YR 5 MO</div>
+          <div class="timeline-title">Full Stack JavaScript & Golang Developer</div>
+          <div class="timeline-company">Sedi.ru · Kyrgyzstan</div>
+          <ul class="timeline-desc">
+            <li>HRM system with AWS Face Recognition for automatic attendance tracking</li>
+            <li>Frontend (React/Redux), backend (Golang), mobile (React Native/NativeBase)</li>
+            <li>Full DevOps: MySQL, Linux configuration & automation</li>
+          </ul>
+          <div class="timeline-tech">stack: <span>Golang · React · React Native · MySQL · AWS · Linux</span></div>
+        </li>
+
+        <!-- 8 -->
+        <li class="timeline-item">
+          <div class="timeline-date">NOV 2019 — APR 2020 · 6 MO</div>
+          <div class="timeline-title">Frontend React.js Developer</div>
+          <div class="timeline-company">Sedi.ru · Kyrgyzstan</div>
+          <ul class="timeline-desc">
+            <li>Billboard rental & management dashboard</li>
+            <li>Online taxi-calling PWA service</li>
+            <li>Ionic, React, Redux, Material UI — mobile & web apps with UX focus</li>
+          </ul>
+          <div class="timeline-tech">stack: <span>React · Redux · Ionic · TypeScript · Sass · Material UI</span></div>
+        </li>
+
+      </ul>
+    </section>
+
+    <!-- ════════════ PROJECTS ════════════ -->
+    <section id="projects" class="terminal-block fade-in">
+      <span class="section-label">// DEPLOYMENTS</span>
+      <div class="cmd-line"><span class="prompt">root</span>@eldiyar:<span class="path">~</span># ls -la /var/projects/</div>
+
+      <div class="project-grid">
+
+        <div class="project-card">
+          <h3>CRYPTO EXCHANGE PLATFORM</h3>
+          <p>Full crypto exchanger with KYC/AML (Sumsub, AMLBot), multi-exchange integration (Binance, Kraken, Bybit), ClickHouse analytics, admin panel with role-based access.</p>
+          <div class="project-stack">NestJS · Next.js · PostgreSQL · ClickHouse · Redis</div>
+        </div>
+
+        <div class="project-card">
+          <h3>MULTI-BLOCKCHAIN WALLET SERVICE</h3>
+          <p>Automated cryptocurrency acceptance & withdrawal (BTC, ETH, USDT, TRX). Deposit monitoring, auto-split distribution, support for 3M wallets in real-time.</p>
+          <div class="project-stack">Node.js · TypeScript · Redis · TronWeb · ethers</div>
+        </div>
+
+        <div class="project-card">
+          <h3>REAL-TIME TRANSLATION PLATFORM</h3>
+          <p>Live audio streaming with auto transcription, translation & TTS. 1K–10K concurrent users. Independent rooms with load balancing & dynamic routing.</p>
+          <div class="project-stack">Node.js · FFmpeg · WebRTC · Nginx · Lua · Redis</div>
+        </div>
+
+        <div class="project-card">
+          <h3>AI CRYPTO TRADING SYSTEM</h3>
+          <p>Automated spot & futures trading using N8N, TimeGPT, KingFisher, MatrixProfile, TradingView indicators, Binance OB-klines for signal generation.</p>
+          <div class="project-stack">N8N · AI · TypeScript · Binance API · ClickHouse</div>
+        </div>
+
+        <div class="project-card">
+          <h3>IoT VENDING & POS SYSTEM</h3>
+          <p>Telemetry, sales monitoring & fiscalization for vending machines and cash registers. High-availability microservice architecture.</p>
+          <div class="project-stack">Adonis.js · Kafka · NATS · PostgreSQL · Docker</div>
+        </div>
+
+        <div class="project-card">
+          <h3>HRM FACE RECOGNITION</h3>
+          <p>Employee attendance tracking system using AWS Face Recognition. Full-stack: Golang backend, React frontend, React Native mobile app.</p>
+          <div class="project-stack">Golang · React · React Native · AWS · MySQL</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ════════════ CONTACT ════════════ -->
+    <section id="contact" class="terminal-block fade-in">
+      <span class="section-label">// UPLINK</span>
+      <div class="cmd-line"><span class="prompt">root</span>@eldiyar:<span class="path">~</span># cat /etc/contacts.conf</div>
+
+      <div class="contact-grid">
+        <div class="contact-item">
+          <span class="label">EMAIL</span>
+          <a href="mailto:eldiyar.san@gmail.com">eldiyar.san@gmail.com</a>
+        </div>
+        <div class="contact-item">
+          <span class="label">TELEGRAM</span>
+          <a href="https://t.me/EldiyarLog" target="_blank" rel="noopener">@EldiyarLog</a>
+        </div>
+        <div class="contact-item">
+          <span class="label">GITHUB</span>
+          <a href="https://github.com/EldiyarLog" target="_blank" rel="noopener">github.com/EldiyarLog</a>
+        </div>
+        <div class="contact-item">
+          <span class="label">LINKEDIN</span>
+          <a href="https://www.linkedin.com/in/eldiyar-engineer/" target="_blank" rel="noopener">eldiyar-engineer</a>
+        </div>
+        <div class="contact-item">
+          <span class="label">HABR</span>
+          <a href="https://career.habr.com/eldiyarlog" target="_blank" rel="noopener">career.habr.com/eldiyarlog</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ FOOTER ════════════ -->
+    <div class="footer">
+      <p>[ SESSION ACTIVE ] — CONNECTION ENCRYPTED — ALL SYSTEMS NOMINAL</p>
+      <p style="margin-top:4px;">© 2025 Eldiyar — Crafted in a terminal, deployed to the web.</p>
+    </div>
+
+  </div>
+
+  <script>
+    (function () {
+      /* ── Matrix Rain ── */
+      var canvas = document.getElementById('matrix-canvas');
+      var ctx = canvas.getContext('2d');
+      var fontSize = 14;
+      var columns, drops;
+      var chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>{}[]=/\\';
+
+      function initMatrix() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        columns = Math.floor(canvas.width / fontSize);
+        drops = [];
+        for (var c = 0; c < columns; c++) {
+          drops[c] = Math.random() * -100 | 0;
+        }
+      }
+
+      function drawMatrix() {
+        ctx.fillStyle = 'rgba(11, 12, 16, 0.15)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#39ff14';
+        ctx.font = fontSize + 'px Consolas, monospace';
+
+        for (var c = 0; c < columns; c++) {
+          if (drops[c] < 0) { drops[c]++; continue; }
+          var ch = chars.charAt(Math.random() * chars.length | 0);
+          var x = c * fontSize;
+          var y = drops[c] * fontSize;
+          ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+          ctx.fillText(ch, x, y);
+          if (y > canvas.height && Math.random() > 0.975) {
+            drops[c] = 0;
+          }
+          drops[c]++;
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      initMatrix();
+      setInterval(drawMatrix, 60);
+      window.addEventListener('resize', initMatrix);
+
+      /* ── Typewriter ── */
+      var text = '> System Access Granted. Welcome, Operator.';
+      var target = document.getElementById('typed-greeting');
+      var i = 0;
+
+      function typeChar() {
+        if (i < text.length) {
+          target.textContent += text.charAt(i);
+          i++;
+          setTimeout(typeChar, 35 + Math.random() * 40);
+        } else {
+          target.classList.add('blink-cursor');
+        }
+      }
+
+      setTimeout(typeChar, 600);
+
+      /* ── Fade-in observer ── */
+      var faders = document.querySelectorAll('.fade-in');
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1 });
+
+      faders.forEach(function (el) { observer.observe(el); });
+    })();
+  </script>
+</body>
+</html>
