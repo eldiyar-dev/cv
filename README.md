@@ -1,5 +1,5 @@
 [![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=139D08&random=false&width=435&lines=JavaScript+Software+Engineer)](https://git.io/typing-svg)<br>
-[![LinkedIn](https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/LinkedIn_Logo.svg/130px-LinkedIn_Logo.svg.png)](https://www.linkedin.com/in/eldiyar-barynbekov)
+[![LinkedIn](https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/LinkedIn_Logo.svg/130px-LinkedIn_Logo.svg.png)](https://www.linkedin.com/in/eldiyar-dev)
 ### Hi there 👋
 
 - 💬 Ask me about JavaScript or Backend dev :)
